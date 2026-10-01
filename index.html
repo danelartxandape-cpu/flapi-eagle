@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🦅 Flapi Eagle — Meme Edition</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,Helvetica,sans-serif;background:linear-gradient(135deg,#10142b,#24104d);color:white;min-height:100vh}
+header{padding:18px 25px;display:flex;justify-content:space-between;align-items:center;background:#0b0d20cc;backdrop-filter:blur(8px);position:sticky;top:0;z-index:5}
+.logo{font-size:28px;font-weight:900}.logo span{color:#ffd43b}
+nav button,.menu button{border:0;border-radius:14px;padding:10px 15px;background:#292d55;color:#fff;cursor:pointer;font-weight:bold}
+nav button:hover,.menu button:hover{background:#41477d;transform:translateY(-2px)}
+main{max-width:1100px;margin:auto;padding:25px}
+.hero{text-align:center;padding:20px 0 10px}
+.hero h1{font-size:clamp(38px,7vw,72px);margin:10px 0;text-shadow:0 5px 0 #0005}
+.hero p{font-size:18px;color:#d8dcff}
+.gamebox{display:flex;justify-content:center;gap:25px;flex-wrap:wrap;align-items:flex-start}
+canvas{width:min(100%,650px);height:auto;border:5px solid white;border-radius:25px;box-shadow:0 20px 60px #0008;background:#73c9ff}
+.panel{width:300px;background:#171b38;border:1px solid #444a7d;border-radius:22px;padding:20px;box-shadow:0 15px 40px #0005}
+.panel h2{margin-top:0}.stat{display:flex;justify-content:space-between;background:#252a4e;padding:12px;border-radius:12px;margin:8px 0}
+.bigbtn{width:100%;padding:15px;margin-top:10px;border:0;border-radius:15px;background:#ffd43b;color:#17120a;font-weight:900;font-size:17px;cursor:pointer}
+.bigbtn:hover{filter:brightness(1.1);transform:scale(1.02)}
+.memes{margin-top:35px}.memes h2{text-align:center;font-size:32px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:15px}
+.card{background:#191d3d;border-radius:18px;padding:20px;text-align:center;border:1px solid #3c4270;transition:.2s}
+.card:hover{transform:rotate(-1deg) scale(1.03);box-shadow:0 10px 30px #0006}
+.emoji{font-size:65px}.card h3{margin:8px 0}.card p{color:#cdd1ef}
+footer{text-align:center;padding:35px;color:#999}
+#toast{position:fixed;left:50%;bottom:25px;transform:translateX(-50%) translateY(100px);background:#fff;color:#111;padding:14px 22px;border-radius:14px;font-weight:bold;transition:.3s;z-index:20}
+#toast.show{transform:translateX(-50%) translateY(0)}
+.shake{animation:shake .25s linear 2}@keyframes shake{25%{transform:translateX(7px)}75%{transform:translateX(-7px)}}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">🦅 <span>FLAPI</span> EAGLE</div>
+  <nav><button onclick="toggleSound()">🔊 Sonido</button> <button onclick="showMeme()">😂 Meme</button></nav>
+</header>
+
+<main>
+<section class="hero">
+<h1>🦅 FLAPI EAGLE</h1>
+<p>El pájaro no vuela. <b>El águila SOBREVIVE.</b> 💀</p>
+</section>
+
+<section class="gamebox">
+<div>
+<canvas id="game" width="650" height="500"></canvas>
+</div>
+<div class="panel">
+<h2>🎮 Centro de control</h2>
+<div class="stat"><span>🏆 Récord</span><b id="best">0</b></div>
+<div class="stat"><span>⭐ Puntos</span><b id="score">0</b></div>
+<div class="stat"><span>🔥 Nivel</span><b id="level">1</b></div>
+<button class="bigbtn" onclick="startGame()">▶ JUGAR</button>
+<button class="bigbtn" onclick="changeDifficulty()">⚡ Cambiar dificultad</button>
+<p id="tip" style="color:#bfc5ed;text-align:center;margin-top:18px">Pulsa ESPACIO o haz clic para volar.</p>
+</div>
+</section>
+
+<section class="memes">
+<h2>😂 ZONA DE MEMES</h2>
+<div class="grid">
+<div class="card"><div class="emoji">🦅</div><h3>Cuando ves el tubo</h3><p>“Tranqui, tengo alas.”</p></div>
+<div class="card"><div class="emoji">💀</div><h3>Primer intento</h3><p>El águila: “Era lag.”</p></div>
+<div class="card"><div class="emoji">🗿</div><h3>Modo difícil</h3><p>El águila ya no siente miedo.</p></div>
+<div class="card"><div class="emoji">📈</div><h3>+999 IQ</h3><p>Esquivar tubos es ingeniería aeroespacial.</p></div>
+<div class="card"><div class="emoji">🍗</div><h3>Premio secreto</h3><p>Sobrevive y desbloqueas pollo.</p></div>
+<div class="card"><div class="emoji">🔥</div><h3>Racha</h3><p>¿Puedes llegar a 20?</p></div>
+</div>
+</section>
+</main>
+<footer>🦅 Flapi Eagle Meme Edition • Hecho para pasar el rato 😎</footer>
+<div id="toast"></div>
+
+<script>
+const c=document.getElementById("game"),ctx=c.getContext("2d");
+let eagle={x:130,y:240,r:22,vy:0}, pipes=[],score=0,best=Number(localStorage.getItem("flapiBest")||0);
+let running=false,started=false,gravity=.42,jump=-7.5,speed=3.1,frame=0,sound=true,diff=1;
+document.getElementById("best").textContent=best;
+
+function reset(){eagle={x:130,y:240,r:22,vy:0};pipes=[];score=0;frame=0;started=false;updateUI()}
+function startGame(){reset();running=true;started=true;toast("🦅 ¡A VOLAR!");}
+function fly(){if(!running){startGame();return} eagle.vy=jump; beep(500,.04)}
+addEventListener("keydown",e=>{if(e.code==="Space"){e.preventDefault();fly()}});
+c.addEventListener("click",fly);
+function changeDifficulty(){diff=diff%3+1; speed=[0,2.8,3.6,4.5][diff]; gravity=[0,.38,.46,.55][diff];toast(["","😎 Fácil","🔥 Normal","💀 IMPOSIBLE"][diff]);}
+function pipeGap(){return Math.max(115,175-score*1.5)}
+function spawn(){let gap=pipeGap(),top=70+Math.random()*(300-gap);pipes.push({x:c.width,top,bottom:top+gap,passed:false})}
+function updateUI(){document.getElementById("score").textContent=score;document.getElementById("best").textContent=best;document.getElementById("level").textContent=1+Math.floor(score/5)}
+function gameOver(){
+ running=false;
+ if(score>best){best=score;localStorage.setItem("flapiBest",best);toast("🏆 ¡NUEVO RÉCORD!");}
+ else toast(score>=10?"😂 ¡Casi profesional!":"💀 DERROTA. El águila necesita práctica.");
+ beep(100,.18);document.body.classList.add("shake");setTimeout(()=>document.body.classList.remove("shake"),500);updateUI();
+}
+function rectCircle(x,y,w,h,cx,cy,r){let px=Math.max(x,Math.min(cx,x+w)),py=Math.max(y,Math.min(cy,y+h));return (cx-px)**2+(cy-py)**2<r*r}
+function update(){
+ if(!running)return;
+ eagle.vy+=gravity;eagle.y+=eagle.vy;
+ if(frame%105===0)spawn();
+ for(const p of pipes){
+   p.x-=speed;
+   if(!p.passed&&p.x+60<eagle.x){p.passed=true;score++;updateUI(); if(score%5===0)toast("🔥 Racha x"+score+"!")}
+   if(rectCircle(p.x,0,62,p.top,eagle.x,eagle.y,eagle.r)||rectCircle(p.x,p.bottom,62,c.height-p.bottom,eagle.x,eagle.y,eagle.r))gameOver();
+ }
+ pipes=pipes.filter(p=>p.x>-80);
+ if(eagle.y-eagle.r<0||eagle.y+eagle.r>c.height)gameOver();
+ frame++;
+}
+function draw(){
+ ctx.clearRect(0,0,c.width,c.height);
+ let sky=ctx.createLinearGradient(0,0,0,c.height);sky.addColorStop(0,"#58c7ff");sky.addColorStop(1,"#d9f6ff");ctx.fillStyle=sky;ctx.fillRect(0,0,c.width,c.height);
+ // clouds
+ ctx.font="38px Arial";ctx.fillText("☁️",80,90);ctx.fillText("☁️",430,135);ctx.fillText("☁️",540,70);
+ // pipes
+ for(const p of pipes){ctx.fillStyle="#4caf50";ctx.fillRect(p.x,0,62,p.top);ctx.fillRect(p.x,p.bottom,62,c.height-p.bottom);ctx.fillStyle="#79d66f";ctx.fillRect(p.x-5,p.top-18,72,18);ctx.fillRect(p.x-5,p.bottom,72,18)}
+ // ground
+ ctx.fillStyle="#75b843";ctx.fillRect(0,c.height-18,c.width,18);
+ // eagle
+ ctx.save();ctx.translate(eagle.x,eagle.y);ctx.rotate(Math.max(-.4,Math.min(.5,eagle.vy*.05)));
+ ctx.font="46px Arial";ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText("🦅",0,0);ctx.restore();
+ // score
+ ctx.fillStyle="#fff";ctx.strokeStyle="#000";ctx.lineWidth=5;ctx.font="900 38px Arial";ctx.textAlign="center";ctx.strokeText(score,c.width/2,55);ctx.fillText(score,c.width/2,55);
+ if(!running){
+   ctx.fillStyle="#0009";ctx.fillRect(0,0,c.width,c.height);
+   ctx.fillStyle="#fff";ctx.font="900 40px Arial";ctx.fillText(started?"💀 FIN":"🦅 FLAPI EAGLE",c.width/2,210);
+   ctx.font="22px Arial";ctx.fillText(started?"Pulsa JUGAR para intentarlo otra vez":"Pulsa JUGAR o ESPACIO",c.width/2,255);
+ }
+ ctx.textAlign="left";
+}
+function loop(){update();draw();requestAnimationFrame(loop)}
+function beep(freq,dur){if(!sound)return;try{let a=new AudioContext(),o=a.createOscillator(),g=a.createGain();o.frequency.value=freq;o.connect(g);g.connect(a.destination);g.gain.value=.04;o.start();o.stop(a.currentTime+dur)}catch(e){}}
+function toggleSound(){sound=!sound;toast(sound?"🔊 Sonido activado":"🔇 Sonido apagado")}
+const memes=["🦅 EL ÁGUILA HA DESPERTADO","💀 TUBO: 1 — ÁGUILA: 0","🗿 IMPOSIBLE DICE...","🔥 ESO HA SIDO LIMPIO","😂 ¿ESO ERA UN PÁJARO?"];
+function showMeme(){toast(memes[Math.floor(Math.random()*memes.length)]);beep(700,.07)}
+function toast(t){let x=document.getElementById("toast");x.textContent=t;x.classList.add("show");clearTimeout(x.t);x.t=setTimeout(()=>x.classList.remove("show"),1800)}
+updateUI();loop();
+</script>
+</body>
+</html>
